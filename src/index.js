@@ -1,5 +1,5 @@
 import Proto from 'uberproto';
-import filter from 'feathers-query-filters';
+import filter from '../../feathers-query-filters';
 import { types as errors }
 from 'feathers-errors';
 import parseQuery from './parse';
@@ -51,6 +51,13 @@ class Service {
     // Handle $select
     if (filters.$select) {
       query = query.pluck(filters.$select);
+    }
+    
+    // Handle $match
+    if (filters.$match) {
+      var key = Object.keys(filters.$match)[0];
+      var value = filters.$match[key];        
+      query = query.filter(function(node) { return node(`${key}`).match(`^.*?${value}.*$`); });      
     }
 
     // Handle $sort
@@ -117,6 +124,8 @@ class Service {
     if (filters.$limit) {
       query = query.limit(filters.$limit);
     }
+    
+    
 
     // Execute the query
     return Promise.all([query, countQuery]).then(([data, total]) => {
