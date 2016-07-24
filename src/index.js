@@ -104,6 +104,13 @@ class Service {
 
     let countQuery;
 
+    // Handle $search
+    if (filters.$search) {
+      var key = Object.keys(filters.$search)[0];
+      var value = filters.$search[key];        
+      query = query.filter(function(node) { return node(`${key}`).match(`^.*?${value}.*$`); });      
+    }
+    
     // For pagination, count has to run as a separate query, but without limit.
     if (this.paginate.default) {
       countQuery = query.count().run();
@@ -193,6 +200,7 @@ class Service {
       } else {
         query = this.table.get(id);
       }
+
       return query.update(data, {
         returnChanges: true
       }).run().then(response => {
@@ -205,13 +213,12 @@ class Service {
   update(id, data) {
     return this._get(id).then(getData => {
       data.id = id;
+
       return this.table.get(getData.id)
         .replace(data, {
           returnChanges: true
         }).run()
-        .then(result =>
-          (result.changes && result.changes.length) ? result.changes[0].new_val : data
-        );
+        .then(result => (result.changes && result.changes.length) ? result.changes[0].new_val : {});
     });
   }
 
@@ -246,6 +253,7 @@ class Service {
         if (error || typeof this.emit !== 'function') {
           return;
         }
+
         if (data.old_val === null) {
           this.emit('created', data.new_val);
         } else if (data.new_val === null) {
